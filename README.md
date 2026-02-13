@@ -1,144 +1,173 @@
 # RegDelta
 
-Open-source, self-hosted LLM system for Vietnamese regulatory intelligence.
+RegDelta is an open-source, self-hosted LLM system for Vietnamese regulatory intelligence.
 
-RegDelta ingests newly issued Vietnamese laws/circulars, extracts compliance-relevant deltas, and produces verified English compliance packs for foreign investors and MNC legal/compliance teams.
+It ingests new Vietnamese laws and circulars, extracts compliance-relevant deltas, and generates verified English compliance packs with abstention when claims are unsupported by source evidence.
 
-## Problem
+## Why This Exists
 
-Cross-border teams often cannot track Vietnamese legal updates fast enough due to:
-- Language barriers
-- Fragmented publication channels
-- High risk of hallucinated legal claims in generic LLM outputs
+Foreign investors and MNC legal/compliance teams need fast, traceable interpretation of Vietnamese regulatory changes. Generic summarization is high risk for legal use because unsupported claims can be introduced silently.
 
-RegDelta targets high-recall ingestion and high-precision verified generation with abstention when source support is weak.
+RegDelta is built around evidence grounding, verification, and reproducibility.
 
-## Users
+## Current Status
 
-- Foreign investors evaluating market entry/regulatory risk
-- MNC legal and compliance teams operating in Vietnam
-- In-house counsel and external advisors preparing policy updates
+Foundation scaffold is implemented:
+- Pipeline package and stage contracts
+- Compute-aware runtime profiles for local/dev and on-prem GPU
+- Config-driven execution and run summaries
+- Reproducibility-first repo layout for data, artifacts, and evaluations
 
-## Core Pipeline
+## End-to-End Pipeline
 
-1. Ingestion: Fetch and version new laws, decrees, and circulars from official sources.
-2. Processing: Segment articles/clauses, normalize metadata and references, and compute document deltas.
-3. Grounding: Build retrieval indices over original Vietnamese text and metadata.
-4. Generation: Produce structured English compliance packs from grounded evidence.
-5. Verification: Check every generated claim against source spans; abstain if unsupported.
-6. Packaging: Export machine-readable and human-readable compliance outputs.
+1. `ingestion`: fetch/version official updates
+2. `processing`: segment/normalize legal text and deltas
+3. `retrieval`: build and query grounding evidence index
+4. `generation`: produce structured English compliance pack draft
+5. `verification`: validate every claim against source evidence; abstain when unsupported
+6. `packaging`: export JSON/Markdown outputs with audit trace
 
-## Technical Architecture (Open Source, Self-Hosted)
-
-- `ingestion/`: Source connectors, scheduling, deduplication, change detection
-- `processing/`: Text cleanup, clause segmentation, legal citation normalization
-- `retrieval/`: Indexing, hybrid search (BM25 + embeddings), evidence ranking
-- `generation/`: Prompt/model adapters and structured output schema
-- `verification/`: Claim-to-evidence alignment, contradiction/unsupported checks, abstention policy
-- `evaluation/`: Test sets, metrics, ablation runners, reproducible experiment logging
-- `orchestration/`: End-to-end DAG, configs, checkpoints, and artifact management
-
-## Experimental Plan (Minimum Two Approaches)
-
-- Approach A: Prompt-only baseline (no retrieval)
-- Approach B: RAG pipeline over Vietnamese source text
-- Optional Approach C: RAG + LoRA fine-tuned model
-- Optional Approach D: Single generator vs generator+verifier model split
-
-Primary comparisons:
-- Translation fidelity
-- Extraction accuracy
-- Hallucination rate / abstention quality
-- End-to-end compliance pack usefulness
-
-## Evaluation
-
-Planned quantitative metrics:
-- Translation fidelity: COMET/BLEU + targeted legal terminology checks
-- Extraction accuracy: Precision/Recall/F1 against annotated deltas
-- Hallucination bounding: Unsupported-claim rate, verifier precision/recall, abstention calibration
-- Retrieval quality: Recall@k and MRR for evidence spans
-
-Outputs include ablation tables, error taxonomy, and per-stage failure analysis.
-
-## Reproducibility
-
-RegDelta will ship:
-- Fixed data snapshots/versioned manifests
-- Deterministic configs and random seeds
-- Saved local checkpoint(s) runnable on SUTD cluster
-- Experiment tracking logs (for example Weights & Biases)
-- One-command or scripted end-to-end pipeline execution
-
-## Project Deliverables Mapping
-
-### Week 6
-
-- Working GitHub repository
-- `PROJECT.md` covering:
-  - Problem statement
-  - Target users
-  - Data sources
-  - Planned ingestion → extraction → translation → verification → packaging pipeline
-  - Experiment design with at least two approaches
-
-### Week 13 (Graded)
-
-- Complete GitHub repo with:
-  - Proper `README.md`
-  - Runnable instructions
-  - Saved local model checkpoint for SUTD cluster
-  - Reproducible training/evaluation logs
-- PDF report with:
-  - Experiments and results
-  - Hardware and estimated GPU hours
-  - Final architecture and design decisions
-- Oral presentation and optional live demo
-
-## Planned Repository Layout
+## Repository Layout
 
 ```text
 RegDelta/
   README.md
   PROJECT.md
+  pyproject.toml
+  Makefile
   configs/
+    base.json
+    profiles/
+      dev_cpu.json
+      onprem_1gpu.json
+      onprem_4gpu.json
+  pipelines/
+    regdelta_pipeline.json
+  src/regdelta/
+    cli.py
+    config.py
+    pipeline.py
+    stages/
+      ingestion.py
+      processing.py
+      retrieval.py
+      generation.py
+      verification.py
+      packaging.py
+  scripts/
+    bootstrap.sh
+    run_pipeline.sh
   data/
     raw/
+    interim/
     processed/
     eval/
-  src/
-    ingestion/
-    processing/
-    retrieval/
-    generation/
-    verification/
-    packaging/
+  artifacts/
+    checkpoints/
+    indices/
+    logs/
+    reports/
   eval/
-  scripts/
-  checkpoints/
-  logs/
-  reports/
+    README.md
+  docs/
+    ARCHITECTURE.md
+  tests/
 ```
 
-## Quick Start (Target)
+## Compute Profiles (Efficiency + Feasibility)
+
+Profiles are in `configs/profiles/` and merged into `configs/base.json`.
+
+- `dev_cpu`: small-model baseline for local iteration and CI sanity checks
+- `onprem_1gpu`: default production baseline (int4 quantization)
+- `onprem_4gpu`: higher-capacity profile for larger context windows and stronger verifier
+
+Design intent:
+- Keep RAG retrieval cheap and deterministic
+- Gate expensive generation with stricter verification
+- Use quantized models by default unless capacity demands bf16
+
+## Quick Start
+
+### 1) Clone
 
 ```bash
-# 1) Clone
 git clone https://github.com/dnoma/RegDelta.git
 cd RegDelta
-
-# 2) Install dependencies (to be finalized)
-# make setup
-
-# 3) Run end-to-end pipeline (to be finalized)
-# make run
-
-# 4) Run evaluation harness (to be finalized)
-# make eval
 ```
 
-## Status
+### 2) Bootstrap environment
 
-Current milestone: foundation docs and architecture plan committed.
+```bash
+./scripts/bootstrap.sh
+```
 
-Next milestone: scaffold pipeline modules, baseline experiments, and first reproducible evaluation run.
+### 3) Preview execution plan
+
+```bash
+make plan
+```
+
+### 4) Run a lightweight dev pipeline
+
+```bash
+make run-dev
+```
+
+### 5) Run with default on-prem profile
+
+```bash
+make run
+```
+
+Each run writes a summary to:
+- `artifacts/logs/runs/<UTC_TIMESTAMP>/run_summary.json`
+
+## Stage Contracts
+
+Each stage writes structured outputs under `artifacts/logs/runs/<run_id>/<stage>/`.
+
+Implementation priorities:
+- `ingestion`: official source connectors + snapshot/version manifesting
+- `processing`: OCR fallback + clause segmentation + delta extraction
+- `retrieval`: BM25 + embedding hybrid retrieval + reranking
+- `generation`: schema-constrained English compliance pack generation
+- `verification`: claim-evidence alignment + contradiction checks + abstention
+- `packaging`: JSON/Markdown/PDF exports and audit bundles
+
+## Experimentation Plan
+
+Minimum two techniques:
+- Prompt-only baseline
+- RAG-based grounded generation
+
+Additional ablations (planned):
+- RAG vs RAG + LoRA fine-tuning
+- Single generator vs generator + verifier split
+
+Metrics to report:
+- Translation fidelity
+- Extraction precision/recall/F1
+- Hallucination/unsupported claim rate
+- Abstention calibration
+- Retrieval recall@k and MRR
+
+## Week Deliverables Mapping
+
+### Week 6
+
+- Working GitHub repo
+- `PROJECT.md` with problem, users, data sources, and planned pipeline
+- Experiment design with at least two approaches
+
+### Week 13 (Graded)
+
+- Complete runnable repo with final README and instructions
+- Saved local checkpoint runnable on SUTD cluster
+- Reproducible training/evaluation logs
+- PDF report (experiments, hardware, GPU hours, architecture, results)
+- Oral presentation (+ optional demo)
+
+## Notes
+
+The current pipeline is intentionally scaffolded to keep implementation tractable and reproducible first. Stage internals are placeholders and should be filled incrementally with measurable benchmarks and ablations.

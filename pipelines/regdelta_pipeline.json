@@ -1,0 +1,36 @@
+{
+  "name": "regdelta_default",
+  "version": "0.1",
+  "stages": [
+    {
+      "name": "ingestion",
+      "inputs": [],
+      "outputs": ["raw_manifest"]
+    },
+    {
+      "name": "processing",
+      "inputs": ["raw_manifest"],
+      "outputs": ["normalized_segments", "deltas"]
+    },
+    {
+      "name": "retrieval",
+      "inputs": ["normalized_segments"],
+      "outputs": ["evidence_index", "retrieval_candidates"]
+    },
+    {
+      "name": "generation",
+      "inputs": ["retrieval_candidates", "deltas"],
+      "outputs": ["compliance_pack_draft"]
+    },
+    {
+      "name": "verification",
+      "inputs": ["compliance_pack_draft", "retrieval_candidates"],
+      "outputs": ["verified_pack", "abstention_report"]
+    },
+    {
+      "name": "packaging",
+      "inputs": ["verified_pack", "abstention_report"],
+      "outputs": ["compliance_pack_json", "compliance_pack_md"]
+    }
+  ]
+}

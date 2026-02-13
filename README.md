@@ -12,11 +12,23 @@ RegDelta is built around evidence grounding, verification, and reproducibility.
 
 ## Current Status
 
-Foundation scaffold is implemented:
+Foundation scaffold is implemented and merged to `main`:
 - Pipeline package and stage contracts
 - Compute-aware runtime profiles for local/dev and on-prem GPU
 - Config-driven execution and run summaries
 - Reproducibility-first repo layout for data, artifacts, and evaluations
+
+## Commit History Snapshot
+
+Current `main` history (latest first) shows a fast scaffold-to-docs iteration on February 13, 2026:
+
+- `a189586`: Merge PR #1 (`feature/scaffold-mlops-foundation`) into `main`
+- `612cf7a`: Expanded `README.md` with architecture and on-prem runbook details
+- `b1a9c10`: Added end-to-end scaffold (CLI, stage modules, profiles, pipeline contract, tests, scripts)
+- `171b1af`: Added initial `README.md` and `PROJECT.md` architecture plan
+
+Practical implication:
+- The repository has a complete runnable scaffold with placeholders for stage internals, and documentation is aligned with that scaffolded architecture.
 
 ## End-to-End Pipeline
 
@@ -58,11 +70,13 @@ RegDelta/
     bootstrap.sh
     run_pipeline.sh
   data/
+    README.md
     raw/
     interim/
     processed/
     eval/
   artifacts/
+    README.md
     checkpoints/
     indices/
     logs/

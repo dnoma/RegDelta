@@ -1,0 +1,19 @@
+{
+  "runtime": {
+    "profile": "dev_cpu",
+    "max_workers": 2
+  },
+  "retrieval": {
+    "top_k": 4,
+    "rerank_top_k": 2
+  },
+  "models": {
+    "translation_model": "qwen2.5-3b-instruct",
+    "generator_model": "qwen2.5-3b-instruct",
+    "verifier_model": "qwen2.5-3b-instruct",
+    "quantization": "int4"
+  },
+  "generation": {
+    "max_new_tokens": 700
+  }
+}

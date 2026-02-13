@@ -1,0 +1,19 @@
+{
+  "runtime": {
+    "profile": "onprem_1gpu",
+    "max_workers": 6
+  },
+  "retrieval": {
+    "top_k": 10,
+    "rerank_top_k": 5
+  },
+  "models": {
+    "translation_model": "qwen2.5-7b-instruct",
+    "generator_model": "qwen2.5-14b-instruct",
+    "verifier_model": "qwen2.5-7b-instruct",
+    "quantization": "int4"
+  },
+  "generation": {
+    "max_new_tokens": 1200
+  }
+}

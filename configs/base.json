@@ -1,0 +1,72 @@
+{
+  "project": {
+    "name": "regdelta",
+    "locale": "vi_VN",
+    "output_locale": "en_US"
+  },
+  "paths": {
+    "data_raw": "data/raw",
+    "data_interim": "data/interim",
+    "data_processed": "data/processed",
+    "data_eval": "data/eval",
+    "checkpoints": "artifacts/checkpoints",
+    "indices": "artifacts/indices",
+    "logs": "artifacts/logs",
+    "reports": "artifacts/reports"
+  },
+  "runtime": {
+    "seed": 42,
+    "max_workers": 4,
+    "profile": "onprem_1gpu"
+  },
+  "pipeline": {
+    "enabled_stages": [
+      "ingestion",
+      "processing",
+      "retrieval",
+      "generation",
+      "verification",
+      "packaging"
+    ]
+  },
+  "ingestion": {
+    "cadence_minutes": 60,
+    "sources": [
+      {
+        "name": "official_portal",
+        "type": "html",
+        "enabled": true
+      }
+    ]
+  },
+  "processing": {
+    "ocr_enabled": true,
+    "segmentation_granularity": "clause"
+  },
+  "retrieval": {
+    "mode": "hybrid",
+    "top_k": 8,
+    "rerank_top_k": 4
+  },
+  "models": {
+    "translation_model": "qwen2.5-7b-instruct",
+    "generator_model": "qwen2.5-14b-instruct",
+    "verifier_model": "qwen2.5-7b-instruct",
+    "quantization": "int4"
+  },
+  "generation": {
+    "temperature": 0.1,
+    "max_new_tokens": 1200,
+    "schema_version": "compliance_pack_v1"
+  },
+  "verification": {
+    "claim_confidence_threshold": 0.75,
+    "abstain_when_unsupported": true
+  },
+  "packaging": {
+    "output_formats": [
+      "json",
+      "md"
+    ]
+  }
+}

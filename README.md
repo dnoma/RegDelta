@@ -1,187 +1,218 @@
 # RegDelta
 
-RegDelta is an open-source, self-hosted LLM system for Vietnamese regulatory intelligence.
+RegDelta is a self-hosted MLOps pipeline for Vietnamese regulatory intelligence.
+It ingests legal documents, extracts compliance-relevant deltas, generates English compliance packs, and verifies claims against source evidence with abstention for unsupported statements.
 
-It ingests new Vietnamese laws and circulars, extracts compliance-relevant deltas, and generates verified English compliance packs with abstention when claims are unsupported by source evidence.
+## Project Status
 
-## Why This Exists
+Current branch includes a runnable scaffold:
+- Config-driven pipeline orchestration
+- Runtime profiles (`dev_cpu`, `onprem_1gpu`, `onprem_4gpu`)
+- Stage module contracts and artifact logging
+- Baseline unit tests for config and pipeline execution
 
-Foreign investors and MNC legal/compliance teams need fast, traceable interpretation of Vietnamese regulatory changes. Generic summarization is high risk for legal use because unsupported claims can be introduced silently.
+Stage internals are still implementation-ready placeholders.
 
-RegDelta is built around evidence grounding, verification, and reproducibility.
+## Scope for v0.1 (Recommended)
 
-## Current Status
+Use a **time-frozen, one-time offline pipeline** first.
 
-Foundation scaffold is implemented and merged to `main`:
-- Pipeline package and stage contracts
-- Compute-aware runtime profiles for local/dev and on-prem GPU
-- Config-driven execution and run summaries
-- Reproducibility-first repo layout for data, artifacts, and evaluations
+Why:
+- Public raw legal text is available, but high-quality labeled supervision is limited.
+- Frozen corpora make results reproducible and easier to grade/audit.
+- Offline execution reduces complexity versus continuous crawling + streaming updates.
 
-## Commit History Snapshot
+Suggested corpus cutoff for milestone evaluation: `2025-12-31` (adjustable in your experiment protocol).
 
-Current `main` history (latest first) shows a fast scaffold-to-docs iteration on February 13, 2026:
+## Problem and Users
 
-- `a189586`: Merge PR #1 (`feature/scaffold-mlops-foundation`) into `main`
-- `612cf7a`: Expanded `README.md` with architecture and on-prem runbook details
-- `b1a9c10`: Added end-to-end scaffold (CLI, stage modules, profiles, pipeline contract, tests, scripts)
-- `171b1af`: Added initial `README.md` and `PROJECT.md` architecture plan
+Target users:
+- Foreign investors operating in Vietnam
+- MNC legal and compliance teams
+- Counsel and policy analysts requiring traceable, evidence-backed outputs
 
-Practical implication:
-- The repository has a complete runnable scaffold with placeholders for stage internals, and documentation is aligned with that scaffolded architecture.
+Core risk addressed:
+- Generic summarization can introduce unsupported legal claims.
 
-## End-to-End Pipeline
+## Pipeline Architecture
 
-1. `ingestion`: fetch/version official updates
-2. `processing`: segment/normalize legal text and deltas
-3. `retrieval`: build and query grounding evidence index
-4. `generation`: produce structured English compliance pack draft
-5. `verification`: validate every claim against source evidence; abstain when unsupported
-6. `packaging`: export JSON/Markdown outputs with audit trace
+Configured stage order:
+1. `ingestion`
+2. `processing`
+3. `retrieval`
+4. `generation`
+5. `verification`
+6. `packaging`
+
+Contract-level stage I/O (`pipelines/regdelta_pipeline.json`):
+
+| Stage | Inputs | Outputs |
+|---|---|---|
+| `ingestion` | - | `raw_manifest` |
+| `processing` | `raw_manifest` | `normalized_segments`, `deltas` |
+| `retrieval` | `normalized_segments` | `evidence_index`, `retrieval_candidates` |
+| `generation` | `retrieval_candidates`, `deltas` | `compliance_pack_draft` |
+| `verification` | `compliance_pack_draft`, `retrieval_candidates` | `verified_pack`, `abstention_report` |
+| `packaging` | `verified_pack`, `abstention_report` | `compliance_pack_json`, `compliance_pack_md` |
+
+## Data Availability and Required Datasets
+
+### Availability reality
+
+- **Available**: official Vietnamese legal documents (HTML/PDF + metadata) from government portals.
+- **Limited**: open, high-quality labels for retrieval relevance, claim support, and legal deltas.
+
+### Minimum datasets needed for this repo
+
+1. `documents` dataset (raw legal corpus):
+   - `doc_id`, `title`, `issuer`, `issue_date`, `effective_date`, `source_url`, `text`, `checksum`
+2. `version_pairs` dataset (delta extraction):
+   - `old_doc_id`, `new_doc_id`, `change_type`, `changed_spans`
+3. `retrieval_eval` dataset:
+   - `query_id`, `query_text`, `relevant_doc_ids` or span-level qrels
+4. `verification_eval` dataset:
+   - `claim_id`, `claim_text`, `label` (`supported|unsupported|contradicted`), `evidence_spans`
+
+### Recommended freeze protocol
+
+1. Fix corpus cutoff date.
+2. Snapshot source URLs and checksums into a manifest.
+3. Normalize to stable JSONL schemas under `data/`.
+4. Build frozen train/dev/test splits for evaluation.
+5. Version all manifests and splits in git-tracked metadata.
+
+## Model Input and Output Contract
+
+### Generation input (example)
+
+```json
+{
+  "query": "What changed for reporting deadlines?",
+  "corpus_cutoff": "2025-12-31",
+  "retrieval_candidates": [
+    {
+      "doc_id": "vn_decree_x",
+      "clause_id": "art_12_cl_3",
+      "text": "Vietnamese evidence text...",
+      "score": 0.87
+    }
+  ],
+  "deltas": [
+    {
+      "change_type": "amended",
+      "reference": "Article 12 Clause 3"
+    }
+  ]
+}
+```
+
+### Verified output (example)
+
+```json
+{
+  "pack_id": "pack_20260213_001",
+  "summary": "Reporting deadlines were tightened for ...",
+  "effective_dates": ["2025-11-01"],
+  "required_actions": [
+    "Submit compliance report within 15 days"
+  ],
+  "claims": [
+    {
+      "claim_id": "claim_001",
+      "statement": "Deadline changed from 30 to 15 days",
+      "verdict": "supported",
+      "citations": [
+        {
+          "doc_id": "vn_decree_x",
+          "clause_id": "art_12_cl_3"
+        }
+      ]
+    }
+  ],
+  "abstentions": [],
+  "confidence": 0.82
+}
+```
 
 ## Repository Layout
 
 ```text
 RegDelta/
-  README.md
-  PROJECT.md
-  pyproject.toml
-  Makefile
-  configs/
-    base.json
-    profiles/
-      dev_cpu.json
-      onprem_1gpu.json
-      onprem_4gpu.json
-  pipelines/
-    regdelta_pipeline.json
-  src/regdelta/
-    cli.py
-    config.py
-    pipeline.py
-    stages/
-      ingestion.py
-      processing.py
-      retrieval.py
-      generation.py
-      verification.py
-      packaging.py
-  scripts/
-    bootstrap.sh
-    run_pipeline.sh
-  data/
-    README.md
-    raw/
-    interim/
-    processed/
-    eval/
-  artifacts/
-    README.md
-    checkpoints/
-    indices/
-    logs/
-    reports/
-  eval/
-    README.md
-  docs/
-    ARCHITECTURE.md
-  tests/
+  configs/                 # Base config + runtime profiles
+  pipelines/               # Stage contract specification
+  src/regdelta/            # CLI, config loader, pipeline runner, stages
+  data/                    # Raw/interim/processed/eval datasets
+  artifacts/               # Checkpoints, indices, logs, reports
+  eval/                    # Evaluation harness plan and scripts (WIP)
+  docs/                    # Architecture docs
+  tests/                   # Unit tests
 ```
 
-## Compute Profiles (Efficiency + Feasibility)
-
-Profiles are in `configs/profiles/` and merged into `configs/base.json`.
-
-- `dev_cpu`: small-model baseline for local iteration and CI sanity checks
-- `onprem_1gpu`: default production baseline (int4 quantization)
-- `onprem_4gpu`: higher-capacity profile for larger context windows and stronger verifier
-
-Design intent:
-- Keep RAG retrieval cheap and deterministic
-- Gate expensive generation with stricter verification
-- Use quantized models by default unless capacity demands bf16
-
-## Quick Start
-
-### 1) Clone
+## Quickstart
 
 ```bash
 git clone https://github.com/dnoma/RegDelta.git
 cd RegDelta
-```
-
-### 2) Bootstrap environment
-
-```bash
 ./scripts/bootstrap.sh
-```
-
-### 3) Preview execution plan
-
-```bash
 make plan
-```
-
-### 4) Run a lightweight dev pipeline
-
-```bash
 make run-dev
+make test
 ```
 
-### 5) Run with default on-prem profile
+Default full run:
 
 ```bash
 make run
 ```
 
-Each run writes a summary to:
+Run summaries are written to:
 - `artifacts/logs/runs/<UTC_TIMESTAMP>/run_summary.json`
 
-## Stage Contracts
+## Configuration and Profiles
 
-Each stage writes structured outputs under `artifacts/logs/runs/<run_id>/<stage>/`.
+Primary config:
+- `configs/base.json`
 
-Implementation priorities:
-- `ingestion`: official source connectors + snapshot/version manifesting
-- `processing`: OCR fallback + clause segmentation + delta extraction
-- `retrieval`: BM25 + embedding hybrid retrieval + reranking
-- `generation`: schema-constrained English compliance pack generation
-- `verification`: claim-evidence alignment + contradiction checks + abstention
-- `packaging`: JSON/Markdown/PDF exports and audit bundles
+Profile overrides:
+- `configs/profiles/dev_cpu.json`
+- `configs/profiles/onprem_1gpu.json`
+- `configs/profiles/onprem_4gpu.json`
 
-## Experimentation Plan
+Execution examples:
 
-Minimum two techniques:
-- Prompt-only baseline
-- RAG-based grounded generation
+```bash
+PYTHONPATH=src python3 -m regdelta.cli plan --config configs/base.json --profile dev_cpu
+PYTHONPATH=src python3 -m regdelta.cli run --config configs/base.json --stages ingestion,processing
+```
 
-Additional ablations (planned):
-- RAG vs RAG + LoRA fine-tuning
-- Single generator vs generator + verifier split
+## Evaluation Plan
 
-Metrics to report:
-- Translation fidelity
-- Extraction precision/recall/F1
-- Hallucination/unsupported claim rate
-- Abstention calibration
-- Retrieval recall@k and MRR
+Baseline comparisons:
+1. Prompt-only generation
+2. Retrieval-grounded generation (RAG)
 
-## Week Deliverables Mapping
+Planned metrics:
+- Translation fidelity and legal term consistency
+- Delta extraction precision/recall/F1
+- Unsupported claim rate and abstention calibration
+- Retrieval Recall@k and MRR
 
-### Week 6
+`eval/README.md` contains the current harness plan.
 
-- Working GitHub repo
-- `PROJECT.md` with problem, users, data sources, and planned pipeline
-- Experiment design with at least two approaches
+## Reproducibility Checklist
 
-### Week 13 (Graded)
+- Fixed random seed in config
+- Frozen corpus manifest and checksums
+- Versioned config profiles
+- Deterministic run artifacts per timestamped run directory
+- Test suite runnable via `make test`
 
-- Complete runnable repo with final README and instructions
-- Saved local checkpoint runnable on SUTD cluster
-- Reproducible training/evaluation logs
-- PDF report (experiments, hardware, GPU hours, architecture, results)
-- Oral presentation (+ optional demo)
+## Roadmap
 
-## Notes
-
-The current pipeline is intentionally scaffolded to keep implementation tractable and reproducible first. Stage internals are placeholders and should be filled incrementally with measurable benchmarks and ablations.
+- Implement real source connectors and parser fixtures in `ingestion`
+- Add clause segmentation and version diffing in `processing`
+- Implement hybrid retrieval + reranking in `retrieval`
+- Enforce schema + citation spans in `generation`
+- Add claim-level verifier + abstention report in `verification`
+- Add full exporter and audit bundle in `packaging`
+- Build evaluation runner and ablation reports in `eval/`

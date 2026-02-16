@@ -27,14 +27,14 @@ class ProcessingStageTests(unittest.TestCase):
             self.assertTrue(segments_path.exists())
             with segments_path.open("r", encoding="utf-8") as f:
                 payload = json.load(f)
-            self.assertEqual(payload.get("status"), "scaffolded")
+            self.assertEqual(payload.get("status"), "ok")
             self.assertIn("granularity", payload)
 
             self.assertTrue(deltas_path.exists())
             with deltas_path.open("r", encoding="utf-8") as f:
                 payload = json.load(f)
-            self.assertEqual(payload.get("status"), "scaffolded")
-            self.assertIn("changes_detected", payload)
+            self.assertEqual(payload.get("status"), "ok")
+            self.assertIn("delta_count", payload)
 
 
 class RetrievalStageTests(unittest.TestCase):
@@ -56,13 +56,13 @@ class RetrievalStageTests(unittest.TestCase):
             self.assertTrue(candidates_path.exists())
             with candidates_path.open("r", encoding="utf-8") as f:
                 payload = json.load(f)
-            self.assertEqual(payload.get("status"), "scaffolded")
+            self.assertEqual(payload.get("status"), "ok")
             self.assertEqual(payload.get("top_k"), 5)
 
             self.assertTrue(index_path.exists())
             with index_path.open("r", encoding="utf-8") as f:
                 index_payload = json.load(f)
-            self.assertEqual(index_payload.get("status"), "scaffolded")
+            self.assertEqual(index_payload.get("status"), "ok")
             self.assertIn("index", index_payload)
 
 

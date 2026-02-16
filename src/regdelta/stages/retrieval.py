@@ -10,15 +10,32 @@ def run_retrieval(context: dict[str, Any]) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     retrieval_cfg = context["config"].get("retrieval", {})
-    payload = {
+    candidates_payload = {
         "status": "scaffolded",
         "note": "Implement hybrid retrieval index and evidence ranking.",
         "top_k": retrieval_cfg.get("top_k"),
         "rerank_top_k": retrieval_cfg.get("rerank_top_k"),
+        "candidates": [],
     }
 
     candidates_path = out_dir / "retrieval_candidates.json"
     with candidates_path.open("w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
+        json.dump(candidates_payload, f, ensure_ascii=False, indent=2)
 
-    return {"retrieval_candidates": str(candidates_path)}
+    index_payload = {
+        "status": "scaffolded",
+        "note": "Implement evidence index creation.",
+        "index": {
+            "documents": [],
+            "total_chunks": 0,
+        },
+    }
+
+    index_path = out_dir / "evidence_index.json"
+    with index_path.open("w", encoding="utf-8") as f:
+        json.dump(index_payload, f, ensure_ascii=False, indent=2)
+
+    return {
+        "retrieval_candidates": str(candidates_path),
+        "evidence_index": str(index_path),
+    }

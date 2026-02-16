@@ -20,6 +20,7 @@
     "profile": "onprem_1gpu"
   },
   "pipeline": {
+    "contract_path": "pipelines/regdelta_pipeline.json",
     "enabled_stages": [
       "ingestion",
       "processing",
@@ -64,9 +65,6 @@
     "abstain_when_unsupported": true
   },
   "packaging": {
-    "output_formats": [
-      "json",
-      "md"
-    ]
+    "output_formats": ["json", "md"]
   }
 }

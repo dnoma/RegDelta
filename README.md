@@ -13,6 +13,22 @@ Current branch includes a runnable scaffold:
 
 Stage internals are still implementation-ready placeholders.
 
+## Agent Execution Protocol
+
+For agent-driven implementation work in this repo:
+
+- Refer to `agent-specs/A` first before planning or implementation.
+- Present technical work as a checkbox ticket plan and review it with the user before starting execution.
+- Define each ticket as exactly one feature.
+- Implement and commit each feature subatomically (one feature-focused commit at a time).
+- Do not add co-author trailers in feature commits.
+
+Ticket template:
+
+- [ ] `FEAT-001`: <feature goal>
+- [ ] `FEAT-002`: <feature goal>
+- [ ] `FEAT-003`: <feature goal>
+
 ## Scope for v0.1 (Recommended)
 
 Use a **time-frozen, one-time offline pipeline** first.

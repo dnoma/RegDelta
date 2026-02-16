@@ -85,7 +85,7 @@ class VerificationStageTests(unittest.TestCase):
             self.assertTrue(verified_path.exists())
             with verified_path.open("r", encoding="utf-8") as f:
                 payload = json.load(f)
-            self.assertEqual(payload.get("status"), "scaffolded")
+            self.assertEqual(payload.get("status"), "ok")
             self.assertIn("confidence_summary", payload)
 
             self.assertTrue(abstention_path.exists())
